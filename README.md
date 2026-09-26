@@ -89,3 +89,17 @@ $env:PYTHONIOENCODING='utf-8'
 4. **Git Bash heredoc 会把脚本里的 `\` 变成 `/`**：写含反斜杠的脚本用 Write 工具落盘，不要在 heredoc 里拼 Windows 路径。
 5. **资料库 SDK 变量必须命名为 `db`**，且 `databaseId` 要用字符串字面量，否则页面 lint（DSDK002/DSDK007/DSDK011）不通过。
 6. 页面发布后链接公开可访问，不要把腾讯文档票据等敏感信息写进 HTML。
+
+## 六、代码上传到 GitHub
+
+本仓库已 `git init` 并提交（默认分支 `main`），`.gitignore` 已排除 `data/` 中间产物与全部凭证文件。
+
+推送只需一个 token（走 stdin，不落盘）：
+
+```bash
+echo <你的GitHub_PAT> | & "C:\Users\张彦飞\.workbuddy\binaries\python\versions\3.13.12\python.exe" "D:\workbuddy\2026-09-18-22-20-37\delivery\scripts\push_github.py" --create
+```
+
+- 目标仓库：`zhangyanfei6688-hash/account-ops-workbench`（不存在时 `--create` 自动建为私有仓库）
+- PAT 需勾选 `repo` 权限：https://github.com/settings/tokens
+- 脚本推送完成后会把 remote 里的 token 抹掉，remote 保持无凭据的 https 地址
