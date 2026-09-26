@@ -24,10 +24,14 @@ API = "https://api.github.com"
 
 
 def sh(args, cwd=BASE, check=True):
-    p = subprocess.run(args, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    # git 走本机 http_proxy 会 502（CONNECT tunnel failed），推送必须直连
+    env = {k: v for k, v in os.environ.items() if k.lower() not in ("http_proxy", "https_proxy", "all_proxy")}
+    p = subprocess.run(args, cwd=cwd, capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", env=env)
     if check and p.returncode != 0:
         raise SystemExit("[FAIL] %s\n%s\n%s" % (" ".join(args), p.stdout, p.stderr))
-    return p.stdout.strip()
+    # git push 的进度信息写 stderr，必须合并返回
+    return (p.stdout + "\n" + p.stderr).strip()
 
 
 def api(method, path, token, payload=None):
@@ -92,6 +96,15 @@ def main():
         print("[OK] 推送完成: https://github.com/%s/%s" % (args.owner, args.repo))
     else:
         print("[WARN] push 输出异常:\n" + out)
+
+    # 校验：远程是否真的有提交
+    st, commits = api("GET", "/repos/%s/%s/commits?per_page=5" % (args.owner, args.repo), token)
+    if st == 200 and isinstance(commits, list):
+        print("[VERIFY] 远程 commit 数(最近页)=%d" % len(commits))
+        for c in commits:
+            print("  - %s %s" % (c.get("sha", "")[:7], (c.get("commit") or {}).get("message", "").splitlines()[0]))
+    else:
+        print("[WARN] 校验失败 %s: %s" % (st, commits.get("message") if isinstance(commits, dict) else commits))
 
 
 if __name__ == "__main__":
